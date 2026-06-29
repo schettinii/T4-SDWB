@@ -1,0 +1,36 @@
+COORDENADOR = QUADRO (ele não é um PC, é só um serviço rodando)
+
+ao criar quadro pedir um nome -> serviço de nomes tem SÓ nome, ip, porta SÓ dos coordenadores (quadros) -> considerar que o serviço de nomes NUNCA vai falhar
+
+ao criar quadro -> vai pra tela do quadro, não pode criar outro até sair desse
+
+o serviço de nomes é o único que tem IP e porta fixos
+
+"ingressar no quadro" -> pergunta pro serviço de nomes os quadros disponíveis, que retorna a lista de coordenadores/quadros -> cliente escolhe
+o coordenador sempre aceita a entrada de um cliente no quadro
+quando o cara entrar, ele vai ter que receber o estado atual do quadro (isso é meio óbvio) e todos os clientes atuais daquele quadro
+
+o coordenador e os clientes têm uma tabela com os IPs de quem ta participando (na hr q o cliente pedir pro coordenador pra participar, vai passar o ip junto) - dá pra usar códigos para cada função (ex: 1 para ingressar, 2 para sair)
+
+todos que estiverem no quadro podem mexer nele, aí aparece pra todo mundo (o computador onde o coordenador está rodando é só mais um cliente)
+
+interface é do cliente -> separado do coordenador
+
+quando o cliente onde está o coordenador SAIR do quadro -> este mesmo cliente continua hosteando o quadro (coordenador)
+quando o cliente onde está o coordenador DESLIGAR o pc -> o coordenador vai para outra máquina -> tem que mudar no serviço de nomes (uma ideia q eu tive é deixar todos os clientes daquele quadro nos próprios clientes OU sair perguntando pra todos os clientes, que foi a ideia do professor) - pra escolher o novo cliente tem q fzr uma eleição
+
+se o coordenador tiver sozinho no quadro e SAIR ou DESLIGAR -> mata o quadro
+
+pra criar uma linha reta: marcar 2 pontos 
+pra criar um quadrado: marcar 2 pontos 
+
+
+botões da tela de um quadro: linha, quadrado, colorir: 2 cores, remover
+       |
+       V
+antes de fazer qualquer coisa com um objeto (pintar ou excluir) precisa selecionar ele. Se outro cliente já estiver com ele selecionado, gera uma msg de erro (se qzr pode ter um botão 'selecionar' antes de pintar e remover) 
+
+
+HEARTBEAT ou PING - fica conferindo se ta todo mundo ativo a cada T segundos, se alguém não responder em 2T, tira ele (vamos ter que escolher entre heartbeat centralizado, em anel ou distribuído)
+
+
