@@ -21,6 +21,7 @@ def trata_cliente(conexao):
     op = msg["op"]
 
     if op == "registrar":
+        # TODO: e se ja existir um quadro com esse nome? por enquanto so sobrescreve
         with trava:
             quadros[msg["nome"]] = (msg["ip"], msg["porta"])
         rede.responde(conexao, {"ok": True})
@@ -42,6 +43,12 @@ def trata_cliente(conexao):
         print("removeu quadro:", msg["nome"])
 
     conexao.close()
+
+
+def dump_tabela():
+    # debug: ver tudo que ta registrado nas paginas amarelas
+    for nome in quadros:
+        print(nome, "->", quadros[nome])
 
 
 servidor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

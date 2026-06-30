@@ -8,8 +8,7 @@ import json
 import rede
 import coordenador
 
-# endereco fixo do servico de nomes. em rede de verdade, troque pelo ip da maquina
-# que roda o servico_nomes.py (ou passe como argumento na linha de comando).
+# endereco do servico de nomes. em rede, troca pelo ip certo (ou passa por argumento)
 IP_NOMES = "127.0.0.1"
 PORTA_NOMES = 6000
 
@@ -19,17 +18,17 @@ T = 3   # de quanto em quanto tempo o cliente confere se o coordenador esta vivo
 class Cliente:
     def __init__(self):
         self.ip = rede.meu_ip()
-        self.porta = None              # porta do meu proprio servidor (definida ao iniciar)
+        self.porta = None         # porta do meu servidor, vem do _inicia_servidor
         self.nome_quadro = None
         self.coord_ip = None
         self.coord_porta = None
-        self.coordenador = None        # objeto Coordenador, se for eu quem hospeda o quadro
-        self.objetos = []              # copia local do quadro, pra desenhar na tela
-        self.participantes = []        # copia local de quem esta no quadro (uso na eleicao)
-        self.selecionado = None        # id do objeto que EU selecionei
+        self.coordenador = None   # so preenche se for eu quem hospeda o quadro
+        self.objetos = []         # copia local pra desenhar
+        self.participantes = []
+        self.selecionado = None   # id que EU selecionei
         self.cor_atual = "red"
-        self.modo = None               # "linha", "quadrado" ou "selecionar"
-        self.pontos = []               # pontos clicados esperando virar linha/quadrado
+        self.modo = None          # linha / quadrado / selecionar
+        self.pontos = []
         self.precisa_redesenhar = False
         self.no_quadro = False
         self.em_eleicao = False
@@ -45,7 +44,7 @@ class Cliente:
         self.root.after(100, self.checa_redesenho)
         self.root.mainloop()
 
-    # ---------- telas ----------
+    # telas
 
     def limpa_tela(self):
         for w in self.root.winfo_children():
@@ -78,7 +77,7 @@ class Cliente:
         self.item2obj = {}        # item do canvas -> id do objeto (pra saber o que foi clicado)
         self.redesenha()
 
-    # ---------- criar / ingressar ----------
+    # criar / ingressar
 
     def criar_quadro(self):
         nome = simpledialog.askstring("Novo quadro", "Nome do quadro:")
@@ -143,6 +142,7 @@ class Cliente:
         self.objetos = estado["objetos"]
         self.participantes = estado["participantes"]
         self.no_quadro = True
+        print("entrei no quadro,", len(self.objetos), "objetos ja existiam")
         self.tela_quadro()
 
     def sair_do_quadro(self):
@@ -171,11 +171,12 @@ class Cliente:
         self.tela_menu()
 
     def fechar(self):
+        # FIXME: se eu sou host e fecho no X, os outros so percebem pelo heartbeat
         if self.coordenador is not None:
             self.coordenador.parar()
         self.root.destroy()
 
-    # ---------- botoes do quadro ----------
+    #  botoes do quadro 
 
     def modo_linha(self):
         self.liberar_selecao()
@@ -236,7 +237,7 @@ class Cliente:
         else:
             messagebox.showerror("Erro", resp.get("erro", "nao deu pra remover"))
 
-    # ---------- desenho no canvas ----------
+    # desenho no canvas 
 
     def clique_canvas(self, evento):
         x, y = evento.x, evento.y
@@ -245,7 +246,10 @@ class Cliente:
             if len(self.pontos) == 2:
                 p1 = self.pontos[0]
                 p2 = self.pontos[1]
-                op = "add_linha" if self.modo == "linha" else "add_quadrado"
+                if self.modo == "linha":
+                    op = "add_linha"
+                else:
+                    op = "add_quadrado"
                 try:
                     rede.envia(self.coord_ip, self.coord_porta,
                                {"op": op, "x1": p1[0], "y1": p1[1], "x2": p2[0], "y2": p2[1]})
@@ -300,7 +304,7 @@ class Cliente:
                 pass
         self.root.after(100, self.checa_redesenho)
 
-    # ---------- meu servidor (recebe do coordenador e dos outros clientes) ----------
+    # meu servidor (recebe do coordenador e dos outros clientes)
 
     def _inicia_servidor(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -329,6 +333,7 @@ class Cliente:
 
         if op == "novo_objeto":
             self.objetos.append(msg["objeto"])
+            # print("chegou objeto novo", msg["objeto"]["id"])
             self.precisa_redesenhar = True
             rede.responde(conexao, {"ok": True})
 
@@ -368,7 +373,7 @@ class Cliente:
 
         conexao.close()
 
-    # ---------- heartbeat e eleicao ----------
+    # heartbeat e eleicao 
 
     def _laco_ping(self):
         falhas = 0
@@ -414,7 +419,7 @@ class Cliente:
         self.vira_coordenador()
 
     def vira_coordenador(self):
-        # vejo quem ainda esta vivo (tira o coordenador que caiu da lista)
+        # vejo quem ainda ta vivo (pingo um por um, meio gambiarra mas funciona)
         vivos = []
         for p in list(self.participantes):
             if p == [self.ip, self.porta]:
@@ -456,6 +461,12 @@ class Cliente:
         with self.trava:
             self.em_eleicao = False
         print("assumi como coordenador do quadro", self.nome_quadro)
+
+
+def _ver_estado(c):
+    # debug: joga na saida o que esse cliente ta enxergando do quadro
+    print("coord:", c.coord_ip, c.coord_porta)
+    print("objetos:", len(c.objetos), "/ participantes:", c.participantes)
 
 
 if __name__ == "__main__":

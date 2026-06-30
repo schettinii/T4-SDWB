@@ -5,11 +5,11 @@ import time
 import rede
 
 T = 3   # intervalo do heartbeat, em segundos
+# FIXME: com muita gente no quadro o ciclo de heartbeat fica meio lento, mas pro trab ta ok
 
 
-# O coordenador e o "dono" de um quadro: guarda os objetos desenhados, a lista de
-# clientes participando e repassa toda acao para todo mundo. Ele roda dentro do
-# processo de um cliente (o que criou o quadro, ou o que venceu a eleicao).
+# o coordenador e quem manda no quadro: guarda os objetos e a lista de clientes
+# e fica repassando as acoes. roda dentro do processo de um cliente.
 class Coordenador:
     def __init__(self, nome, ip, porta, objetos=None, participantes=None):
         self.nome = nome
@@ -79,7 +79,10 @@ class Coordenador:
             self._broadcast({"op": "participantes", "lista": self.participantes})
 
         elif op == "add_linha" or op == "add_quadrado":
-            tipo = "linha" if op == "add_linha" else "quadrado"
+            if op == "add_linha":
+                tipo = "linha"
+            else:
+                tipo = "quadrado"
             with self.trava:
                 obj = {"id": self.proximo_id, "tipo": tipo,
                        "x1": msg["x1"], "y1": msg["y1"],
@@ -147,13 +150,14 @@ class Coordenador:
             if self.selecoes[oid] == cliente:
                 del self.selecoes[oid]
 
-    # manda a mesma mensagem pra todos os participantes
+    # manda a msg pra todo mundo do quadro
     def _broadcast(self, msg):
+        # print("broadcast", msg["op"], "pra", len(self.participantes))
         for p in list(self.participantes):
             try:
                 rede.envia(p[0], p[1], msg)
             except:
-                pass   # cliente caiu; o heartbeat tira ele da lista depois
+                pass   # cliente caiu, o heartbeat remove ele depois
 
     def _laco_heartbeat(self):
         falhas = {}
@@ -166,8 +170,11 @@ class Coordenador:
                     falhas[chave] = 0
                 except:
                     falhas[chave] = falhas.get(chave, 0) + 1
-            # quem nao respondeu duas vezes seguidas (2T sem dar sinal) sai do quadro
-            mortos = [p for p in list(self.participantes) if falhas.get(tuple(p), 0) >= 2]
+            # quem nao respondeu 2 vezes seguidas (2T) sai do quadro
+            mortos = []
+            for p in list(self.participantes):
+                if falhas.get(tuple(p), 0) >= 2:
+                    mortos.append(p)
             if mortos:
                 with self.trava:
                     for p in mortos:
@@ -177,3 +184,9 @@ class Coordenador:
                         falhas[tuple(p)] = 0
                 self._broadcast({"op": "participantes", "lista": self.participantes})
                 print("tirei do quadro:", mortos)
+
+    def _dump(self):
+        # debug: estado completo, chamo no console quando algo ta estranho
+        print("objetos:", self.objetos)
+        print("participantes:", self.participantes)
+        print("selecoes:", self.selecoes)

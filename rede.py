@@ -2,13 +2,13 @@ import socket
 import json
 
 
-# manda uma mensagem (dict) para ip:porta e devolve a resposta, ou None se nao vier nada.
-# se nao conseguir conectar estoura excecao - quem chama trata quando precisa.
+# manda uma msg (dict) pro ip:porta e devolve a resposta, ou None
 def envia(ip, porta, msg):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(3)
     s.connect((ip, porta))
     s.sendall((json.dumps(msg) + "\n").encode())
+    # print("enviei pra", ip, porta, ":", msg)
     resposta = le_linha(s)
     s.close()
     if resposta is None:
@@ -30,13 +30,12 @@ def le_linha(sock):
     return linha.decode()
 
 
-# responde uma mensagem com a conexao ja aberta (usado pelos servidores)
+# responde usando a conexao que ja ta aberta
 def responde(conexao, msg):
     conexao.sendall((json.dumps(msg) + "\n").encode())
 
 
-# descobre o ip da maquina na rede: abre um socket pra fora e ve com que ip o SO saiu.
-# nao manda nada de verdade, so serve pra pegar o endereco.
+# pega o ip da maquina (truque de abrir socket pro 8.8.8.8 e ver com q ip o SO saiu)
 def meu_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
